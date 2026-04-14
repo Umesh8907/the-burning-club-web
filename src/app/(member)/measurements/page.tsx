@@ -75,7 +75,7 @@ export default function MeasurementsPage() {
   const weightDiff = (latest && previous) ? (latest.weight - previous.weight).toFixed(1) : '0.0';
 
   return (
-    <div className="space-y-8 max-w-5xl mx-auto pb-20">
+    <div className="space-y-8 max-w-[1400px] mx-auto pb-20">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <h1 className="text-4xl font-black text-white tracking-tight">

@@ -101,7 +101,7 @@ export default function PlansPage() {
   );
 
   return (
-    <div className="max-w-6xl mx-auto space-y-12 h-full flex flex-col items-center py-10">
+    <div className="max-w-[1400px] mx-auto space-y-12 h-full flex flex-col items-center py-10">
       <div className="text-center space-y-4">
         <h1 className="text-5xl font-black text-white italic tracking-tighter uppercase">Pick Your <span className="text-brand">Fire</span></h1>
         <p className="text-zinc-500 max-w-lg mx-auto font-bold uppercase tracking-widest text-xs">
