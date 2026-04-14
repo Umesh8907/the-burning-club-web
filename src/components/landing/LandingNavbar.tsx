@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 export function LandingNavbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { user } = useAuthStore();
+  const { admin, customer } = useAuthStore();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -55,9 +55,18 @@ export function LandingNavbar() {
 
           <div className="h-6 w-px bg-white/10" />
 
-          {user ? (
+          {admin && (
             <Link 
-              href={user.role === 'admin' ? '/admin/dashboard' : '/dashboard'}
+              href="/admin/dashboard"
+              className="text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:text-brand transition-colors mr-6"
+            >
+              Admin Portal
+            </Link>
+          )}
+
+          {customer ? (
+            <Link 
+              href="/dashboard"
               className="bg-white text-black px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-brand hover:text-white transition-all shadow-lg"
             >
               Dashboard
@@ -109,9 +118,21 @@ export function LandingNavbar() {
               </Link>
             ))}
             <div className="h-px bg-white/5 w-full" />
-            {user ? (
+            
+            {admin && (
+              <Link 
+                href="/admin/dashboard"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="text-center py-4 text-zinc-400 font-black uppercase tracking-widest border border-zinc-800 rounded-xl"
+              >
+                Go to Admin Portal
+              </Link>
+            )}
+
+            {customer ? (
               <Link 
                 href="/dashboard"
+                onClick={() => setIsMobileMenuOpen(false)}
                 className="bg-white text-black py-4 rounded-xl text-center font-black uppercase tracking-widest"
               >
                 Go to Dashboard
@@ -120,12 +141,14 @@ export function LandingNavbar() {
               <div className="flex flex-col gap-4">
                 <Link 
                   href="/login"
-                  className="text-center py-4 text-zinc-400 font-black uppercase tracking-widest"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="text-center py-4 text-zinc-400 font-black uppercase tracking-widest border border-zinc-800 rounded-xl"
                 >
                   Login
                 </Link>
                 <Link 
                   href="/register"
+                  onClick={() => setIsMobileMenuOpen(false)}
                   className="bg-brand text-white py-4 rounded-xl text-center font-black uppercase tracking-widest shadow-xl shadow-brand/20"
                 >
                   Join the Fire

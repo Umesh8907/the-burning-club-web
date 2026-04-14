@@ -12,21 +12,36 @@ const axiosInstance = axios.create({
   },
 });
 
-// Inject Bearer token from Cookies
+// Inject Role-based token from Cookies
 axiosInstance.interceptors.request.use((config) => {
-  const token = Cookies.get('accessToken');
+  // Determine if this is an admin request
+  // Most admin API calls go to /admin/*
+  const isAdminRequest = config.url?.startsWith('/admin');
+  
+  // Choose the appropriate token name
+  const tokenName = isAdminRequest ? 'adminAccessToken' : 'accessToken';
+  const token = Cookies.get(tokenName);
+
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
-    console.log(`[AXIOS DEBUG] Sending token in ${config.method?.toUpperCase()} ${config.url}`);
+    console.log(`[AXIOS DEBUG] Using ${tokenName} for ${config.method?.toUpperCase()} ${config.url}`);
   } else {
-    console.log(`[AXIOS DEBUG] No token found for ${config.method?.toUpperCase()} ${config.url}`);
+    // Fallback: If it's a shared endpoint (like /auth/refresh) and we don't have a specific token,
+    // we might need to rely on the caller to handle it, but for most requests we just log.
+    console.log(`[AXIOS DEBUG] No ${tokenName} found for ${config.url}`);
   }
   return config;
 });
 
 // Clean token refresh logic
 const refreshAuthLogic = (failedRequest: any) => {
-  const refreshToken = localStorage.getItem('refreshToken');
+  // Here we need to know WHICH token failed. 
+  // We can infer this from the original request URL.
+  const isAdminRequest = failedRequest.config.url?.startsWith('/admin');
+  const refreshVar = isAdminRequest ? 'adminRefreshToken' : 'refreshToken';
+  const accessVar = isAdminRequest ? 'adminAccessToken' : 'accessToken';
+  
+  const refreshToken = localStorage.getItem(refreshVar);
   
   if (!refreshToken) {
     return Promise.reject(failedRequest);
@@ -36,7 +51,7 @@ const refreshAuthLogic = (failedRequest: any) => {
     .post(`${API_URL}/auth/refresh-token`, { refreshToken })
     .then((res) => {
       const { accessToken } = res.data.data;
-      Cookies.set('accessToken', accessToken, { expires: 1, path: '/' });
+      Cookies.set(accessVar, accessToken, { expires: 1, path: '/' });
       
       // Update the original request's headers for the retry
       if (failedRequest.config) {
@@ -46,12 +61,9 @@ const refreshAuthLogic = (failedRequest: any) => {
       return Promise.resolve();
     })
     .catch((err) => {
-      console.log('[AXIOS DEBUG] Refresh failed. Clearing all auth indicators.');
-      // If refresh fails, clear everything to trigger logout check on next action
-      Cookies.remove('accessToken', { path: '/' });
-      Cookies.remove('auth_active', { path: '/' });
-      Cookies.remove('userRole', { path: '/' });
-      localStorage.removeItem('refreshToken');
+      console.log(`[AXIOS DEBUG] Refresh failed for ${refreshVar}. Clearing session.`);
+      Cookies.remove(accessVar, { path: '/' });
+      localStorage.removeItem(refreshVar);
       return Promise.reject(err);
     });
 };

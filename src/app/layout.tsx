@@ -19,13 +19,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
-      <head>
+      <body className={`${inter.variable} antialiased selection:bg-brand/30`} suppressHydrationWarning>
         <Script
           src="https://checkout.razorpay.com/v1/checkout.js"
-          strategy="beforeInteractive"
+          strategy="afterInteractive"
         />
-      </head>
-      <body className={`${inter.variable} antialiased selection:bg-brand/30`} suppressHydrationWarning>
         <Toaster 
           position="top-center"
           toastOptions={{

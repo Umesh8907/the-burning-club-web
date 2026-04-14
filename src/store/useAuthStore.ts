@@ -4,109 +4,101 @@ import Cookies from 'js-cookie';
 import toast from 'react-hot-toast';
 
 interface User {
-  id: string;
+  _id: string;
   name: string;
   phone: string;
-  role: 'customer' | 'admin';
-  membershipStatus: string;
-  metadata?: {
-    weight?: number;
-    height?: number;
-    bmi?: number;
-  };
-  activeSubscription?: {
-    planId: string;
-    endDate: string;
-    status: string;
-  };
+  role: 'admin' | 'customer';
+  membershipStatus?: string;
+  metadata?: any;
 }
 
 interface AuthState {
-  user: User | null;
+  admin: User | null;
+  customer: User | null;
   loading: boolean;
   isInitialized: boolean;
-  setUser: (user: User | null) => void;
+  setAdmin: (user: User | null) => void;
+  setCustomer: (user: User | null) => void;
   setLoading: (loading: boolean) => void;
-  login: (phone: string, password: string) => Promise<void>;
+  login: (phone: string, password: string, targetRole?: 'admin' | 'customer') => Promise<'admin' | 'customer'>;
   register: (data: any) => Promise<void>;
-  logout: () => void;
+  logout: (role?: 'admin' | 'customer') => void;
   checkAuth: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
-  user: null,
-  loading: false, // Start false for optimistic UI
+  admin: null,
+  customer: null,
+  loading: false,
   isInitialized: false,
 
-  setUser: (user) => set({ user }),
+  setAdmin: (admin) => set({ admin }),
+  setCustomer: (customer) => set({ customer }),
   setLoading: (loading) => set({ loading }),
 
   checkAuth: async () => {
-    const token = Cookies.get('accessToken');
-    const refreshToken = localStorage.getItem('refreshToken');
+    const adminToken = Cookies.get('adminAccessToken');
+    const adminRefresh = localStorage.getItem('adminRefreshToken');
+    const customerToken = Cookies.get('accessToken');
+    const customerRefresh = localStorage.getItem('refreshToken');
 
-    // 1. If we have NO tokens at all, we are guests.
-    if (!token && !refreshToken) {
-      console.log('[AUTH STORE DEBUG] No tokens found. User is guest.');
-      set({ user: null, isInitialized: true, loading: false });
+    // If no tokens at all, we are guests
+    if (!adminToken && !adminRefresh && !customerToken && !customerRefresh) {
+      set({ admin: null, customer: null, isInitialized: true, loading: false });
       return;
     }
 
-    // 2. Proactive Recovery: If accessToken is gone but refreshToken exists, try to refresh first
-    if (!token && refreshToken) {
-      console.log('[AUTH STORE DEBUG] Access token missing but refresh token exists. Attempting recovery...');
-      try {
-        const res = await axios.post('/auth/refresh-token', { refreshToken });
-        const { accessToken, user: userData } = res.data.data;
-        Cookies.set('accessToken', accessToken, { expires: 1, path: '/' });
-        console.log('[AUTH STORE DEBUG] Recovery successful. Profile retrieved.');
-        set({ user: userData, isInitialized: true, loading: false });
-        return; // Recovery successful
-      } catch (err) {
-        // Refresh failed, clear everything
-        console.log('[AUTH STORE DEBUG] Recovery failed. Clearing tokens.');
-        localStorage.removeItem('refreshToken');
-        set({ user: null, isInitialized: true, loading: false });
-        return;
+    const checkAdmin = async () => {
+      if (adminToken || adminRefresh) {
+        try {
+          // Explicitly use /admin prefix to trigger adminAccessToken in interceptor
+          const res = await axios.get('/admin/users/me'); 
+          set({ admin: res.data.data });
+        } catch (e) {
+          console.error("Admin session verification failed:", e);
+          set({ admin: null });
+        }
       }
-    }
+    };
 
-    // 3. Normal Path: We have an accessToken, just fetch the profile
-    console.log('[AUTH STORE DEBUG] Access token found. Fetching profile...');
-    try {
-      const res = await axios.get('/users/me');
-      const userData = res.data.data;
-      console.log('[AUTH STORE DEBUG] Profile fetched successfully.');
-      set({ user: userData, isInitialized: true, loading: false });
-    } catch (error: any) {
-      // If we hit a 401 here, the interceptor will try to refresh.
-      // If the interceptor/refresh finally fails, axios returns the error here.
-      if (error.response?.status === 401 || error.response?.status === 403) {
-        console.log('[AUTH STORE DEBUG] Profile fetch failed with 401/403. Clearing session.');
-        set({ user: null, isInitialized: true, loading: false });
-        Cookies.remove('accessToken', { path: '/' });
-        Cookies.remove('userRole', { path: '/' });
-        Cookies.remove('auth_active', { path: '/' });
-        localStorage.removeItem('refreshToken');
-      } else {
-        set({ isInitialized: true, loading: false });
+    const checkCustomer = async () => {
+      if (customerToken || customerRefresh) {
+        try {
+          // Standard route uses accessToken in interceptor
+          const res = await axios.get('/users/me');
+          set({ customer: res.data.data });
+        } catch (e) {
+          console.error("Customer session verification failed:", e);
+          set({ customer: null });
+        }
       }
-    }
+    };
+
+    await Promise.all([checkAdmin(), checkCustomer()]);
+    set({ isInitialized: true, loading: false });
   },
 
-  login: async (phone, password) => {
+  login: async (phone, password, targetRole) => {
     set({ loading: true });
     try {
       const res = await axios.post('/auth/login', { phone, password });
       const { accessToken, refreshToken, user: userData } = res.data.data;
 
-      Cookies.set('accessToken', accessToken, { expires: 1, path: '/' });
-      Cookies.set('userRole', userData.role, { expires: 7, path: '/' });
-      Cookies.set('auth_active', 'true', { expires: 7, path: '/' });
-      localStorage.setItem('refreshToken', refreshToken);
+      // Determine if we should treat this as an admin login
+      // Either use the targetRole or the actual returned role
+      const is_admin = targetRole === 'admin' || userData.role === 'admin';
+      
+      if (is_admin) {
+        Cookies.set('adminAccessToken', accessToken, { expires: 1, path: '/' });
+        localStorage.setItem('adminRefreshToken', refreshToken);
+        set({ admin: userData, loading: false, isInitialized: true });
+      } else {
+        Cookies.set('accessToken', accessToken, { expires: 1, path: '/' });
+        localStorage.setItem('refreshToken', refreshToken);
+        set({ customer: userData, loading: false, isInitialized: true });
+      }
 
-      set({ user: userData, loading: false, isInitialized: true });
-      toast.success('Welcome back!');
+      toast.success(`Welcome back, ${userData.name}!`);
       return userData.role;
     } catch (error: any) {
       set({ loading: false });
@@ -122,11 +114,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const { accessToken, refreshToken, user: userData } = res.data.data;
 
       Cookies.set('accessToken', accessToken, { expires: 1, path: '/' });
-      Cookies.set('userRole', userData.role, { expires: 7, path: '/' });
-      Cookies.set('auth_active', 'true', { expires: 7, path: '/' });
       localStorage.setItem('refreshToken', refreshToken);
 
-      set({ user: userData, loading: false, isInitialized: true });
+      set({ customer: userData, loading: false, isInitialized: true });
       toast.success('Registration successful!');
     } catch (error: any) {
       set({ loading: false });
@@ -135,13 +125,26 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  logout: () => {
-    Cookies.remove('accessToken', { path: '/' });
-    Cookies.remove('userRole', { path: '/' });
-    Cookies.remove('auth_active', { path: '/' });
-    localStorage.removeItem('refreshToken');
-    set({ user: null, isInitialized: true, loading: false });
+  logout: (role) => {
+    const currentPath = window.location.pathname;
+    const is_admin = role === 'admin' || currentPath.startsWith('/admin');
+
+    if (is_admin) {
+      Cookies.remove('adminAccessToken', { path: '/' });
+      localStorage.removeItem('adminRefreshToken');
+      set({ admin: null });
+    } else {
+      Cookies.remove('accessToken', { path: '/' });
+      localStorage.removeItem('refreshToken');
+      set({ customer: null });
+    }
+
     toast.success('Logged out');
-    window.location.href = '/login';
+    // If we are on an admin page and log out admin, go to admin login
+    if (is_admin && currentPath.startsWith('/admin')) {
+        window.location.href = '/admin/login';
+    } else if (!is_admin && !currentPath.startsWith('/admin')) {
+        window.location.href = '/login';
+    }
   },
 }));

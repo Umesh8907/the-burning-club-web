@@ -23,9 +23,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 export function Shell({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
-  const { user, logout } = useAuthStore();
+  const { customer, logout } = useAuthStore();
 
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = customer?.role === 'admin';
 
   const adminLinks = [
     { name: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
@@ -88,13 +88,13 @@ export function Shell({ children }: { children: React.ReactNode }) {
                 <UserIcon className="w-5 h-5 text-zinc-400" />
               </div>
               <div className="flex-1 overflow-hidden">
-                <p className="text-sm font-bold text-white truncate">{user?.name}</p>
-                <p className="text-xs text-zinc-500 uppercase tracking-widest">{user?.role}</p>
+                <p className="text-sm font-bold text-white truncate">{customer?.name}</p>
+                <p className="text-xs text-zinc-500 uppercase tracking-widest">{customer?.role}</p>
               </div>
             </div>
             
             <button 
-              onClick={logout}
+              onClick={() => logout('customer')}
               className="flex items-center gap-3 w-full px-4 py-3 text-zinc-500 hover:text-red-500 hover:bg-red-500/10 transition-all rounded-xl mt-4"
             >
               <LogOut className="w-5 h-5" />

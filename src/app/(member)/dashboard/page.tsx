@@ -32,12 +32,12 @@ interface Subscription {
 }
 
 export default function DashboardPage() {
-  const { user, isInitialized } = useAuthStore();
+  const { customer, isInitialized } = useAuthStore();
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
 
-  if (!isInitialized || !user) {
+  if (!isInitialized || !customer) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4 animate-pulse">
         <Flame className="w-12 h-12 text-zinc-800" />
@@ -67,7 +67,7 @@ export default function DashboardPage() {
     fetchDashboardData();
   }, []);
 
-  const isActive = user?.membershipStatus === 'active';
+  const isActive = customer?.membershipStatus === 'active';
 
   // Calculate streak (simple version: count consecutive days in recent attendance)
   const calculateStreak = () => {
@@ -106,7 +106,7 @@ export default function DashboardPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-4xl font-black text-white tracking-tight">
-            PUSH YOUR <span className="text-brand">LIMITS</span>, {user?.name?.split(' ')[0]?.toUpperCase() || 'SOLDIER'}
+            PUSH YOUR <span className="text-brand">LIMITS</span>, {customer?.name?.split(' ')[0]?.toUpperCase() || 'SOLDIER'}
           </h1>
           <p className="text-zinc-500 mt-2 flex items-center gap-2">
             <Calendar className="w-4 h-4" />
@@ -184,7 +184,7 @@ export default function DashboardPage() {
               </div>
               <div>
                 <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">Body Weight</p>
-                <p className="text-xl font-black text-white">{user?.metadata?.weight || '--'} <span className="text-[10px] text-zinc-500">KG</span></p>
+                <p className="text-xl font-black text-white">{customer?.metadata?.weight || '--'} <span className="text-[10px] text-zinc-500">KG</span></p>
               </div>
             </div>
           </div>
@@ -195,7 +195,7 @@ export default function DashboardPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-black text-lg">RENEWAL REQUIRED</p>
-                    <p className="text-white/70 text-xs font-bold uppercase">Membership is {user?.membershipStatus}</p>
+                    <p className="text-white/70 text-xs font-bold uppercase">Membership is {customer?.membershipStatus}</p>
                   </div>
                   <ChevronRight className="w-6 h-6 group-hover:translate-x-2 transition-transform" />
                 </div>

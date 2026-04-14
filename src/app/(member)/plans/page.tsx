@@ -18,9 +18,9 @@ import toast from "react-hot-toast";
 export default function PlansPage() {
   const [plans, setPlans] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuthStore();
+  const { customer } = useAuthStore();
 
-  const activePlanId = (user as any)?.activeSubscription?.planId;
+  const activePlanId = (customer as any)?.activeSubscription?.planId;
 
   useEffect(() => {
     const fetchPlans = async () => {
@@ -76,8 +76,8 @@ export default function PlansPage() {
           }
         },
         prefill: {
-          name: user?.name,
-          contact: user?.phone,
+          name: customer?.name,
+          contact: customer?.phone,
         },
         theme: {
           color: '#FF4D00',

@@ -6,7 +6,7 @@ import { Flame, ArrowRight } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 
 export function LandingCTA() {
-  const { user } = useAuthStore();
+  const { customer } = useAuthStore();
 
   return (
     <section id="plans" className="py-24 px-6">
@@ -36,14 +36,14 @@ export function LandingCTA() {
 
             <div className="flex flex-col sm:flex-row items-center gap-6 mt-6">
                <Link 
-                  href={user ? "/dashboard" : "/register"}
+                  href={customer ? "/dashboard" : "/register"}
                   className="bg-white text-black px-12 py-5 rounded-2xl font-black uppercase tracking-widest text-sm hover:bg-brand hover:text-white transition-all flex items-center gap-3 shadow-2xl"
                >
-                  {user ? 'Return to HQ' : 'Join the Operation'}
+                  {customer ? 'Return to HQ' : 'Join the Operation'}
                   <ArrowRight className="w-5 h-5" />
                </Link>
                
-               {!user && (
+               {!customer && (
                  <Link 
                     href="/login" 
                     className="text-white hover:text-brand font-black uppercase tracking-widest text-xs transition-colors py-4 px-8"

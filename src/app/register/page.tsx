@@ -15,7 +15,7 @@ export default function RegisterPage() {
     password: '',
     branch: 'Main Branch'
   });
-  const { register, user, loading: authLoading, isInitialized } = useAuthStore();
+  const { register, customer, loading: authLoading, isInitialized } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
   const router = useRouter();
@@ -26,13 +26,13 @@ export default function RegisterPage() {
 
   // Client-side guard for cache hits / back button
   useEffect(() => {
-    if (isInitialized && user && mounted) {
+    if (isInitialized && customer && mounted) {
       router.replace('/dashboard');
     }
-  }, [user, isInitialized, router, mounted]);
+  }, [customer, isInitialized, router, mounted]);
 
   // If we are still checking auth, or if we are logged in, don't show the form
-  if (!mounted || (isInitialized && user)) {
+  if (!mounted || (isInitialized && customer)) {
     return null;
   }
 

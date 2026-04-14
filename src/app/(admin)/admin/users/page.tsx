@@ -7,14 +7,13 @@ import {
   Search, 
   Filter, 
   MoreVertical, 
-  ShieldCheck, 
-  ShieldAlert,
-  Snowflake,
   UserCheck,
   UserMinus,
   Mail,
   Phone,
-  Calendar
+  Calendar,
+  Snowflake,
+  ExternalLink
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn, formatDate } from '@/lib/utils';
@@ -43,7 +42,7 @@ export default function AdminUsersPage() {
       const res = await axios.get('/admin/users');
       setUsers(res.data.data);
     } catch (error) {
-       toast.error('Failed to load tactical intelligence (Users)');
+       toast.error('Failed to load members');
     } finally {
       setLoading(false);
     }
@@ -56,7 +55,7 @@ export default function AdminUsersPage() {
   const handleToggleStatus = async (id: string) => {
     try {
       await axios.patch(`/admin/users/${id}/toggle-status`);
-      toast.success('Agent status updated');
+      toast.success('User status updated');
       fetchUsers();
     } catch (error) {
       toast.error('Failed to update status');
@@ -65,8 +64,9 @@ export default function AdminUsersPage() {
 
   const handleFreeze = async (id: string) => {
     try {
-      await axios.post(`/admin/users/${id}/freeze`);
-      toast.success('Membership cryogenic stasis initiated (Frozen)');
+      // Assuming freeze needs a duration now, or stick to default
+      await axios.post(`/admin/users/${id}/freeze`, { days: 7 }); 
+      toast.success('Membership frozen for 7 days');
       fetchUsers();
     } catch (error) {
       toast.error('Freezing process failed');
@@ -81,122 +81,112 @@ export default function AdminUsersPage() {
   });
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+    <div className="space-y-6 text-gray-900">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-4xl font-black text-white tracking-tight uppercase italic">Member Registry</h1>
-          <p className="text-zinc-500 mt-1 uppercase tracking-widest text-xs font-bold">Tactical overview of all club agents</p>
+          <h1 className="text-2xl font-bold">Member Directory</h1>
+          <p className="text-sm text-gray-500">Manage all club members and their membership status.</p>
         </div>
         
-        <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input 
               type="text" 
-              placeholder="SEARCH BY NAME or PHONE..." 
+              placeholder="Search members..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-zinc-900 border border-zinc-800 rounded-xl py-3 pl-11 pr-4 text-sm text-white focus:border-brand outline-none w-full sm:w-64 transition-all uppercase font-bold placeholder:text-zinc-700"
+              className="bg-white border border-gray-300 rounded-lg py-2 pl-9 pr-4 text-sm focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none w-full sm:w-64 transition-all"
             />
           </div>
-          <div className="flex bg-zinc-900 border border-zinc-800 rounded-xl p-1">
-             {(['all', 'active', 'expired'] as const).map((f) => (
-               <button 
-                 key={f}
-                 onClick={() => setFilter(f)}
-                 className={cn(
-                   "px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all",
-                   filter === f ? "bg-brand text-white shadow-lg" : "text-zinc-500 hover:text-white"
-                 )}
-               >
-                 {f}
-               </button>
-             ))}
-          </div>
+          <select 
+            value={filter}
+            onChange={(e) => setFilter(e.target.value as any)}
+            className="bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-indigo-500 outline-none"
+          >
+            <option value="all">All Status</option>
+            <option value="active">Active</option>
+            <option value="expired">Expired</option>
+            <option value="inactive">Inactive</option>
+          </select>
         </div>
       </div>
 
-      <div className="glass rounded-[32px] overflow-hidden border border-zinc-800/50">
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-zinc-900/50 border-b border-zinc-800/50">
-                <th className="px-8 py-5 text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em]">Agent</th>
-                <th className="px-8 py-5 text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em]">Contact</th>
-                <th className="px-8 py-5 text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em]">Status</th>
-                <th className="px-8 py-5 text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em]">Joined</th>
-                <th className="px-8 py-5 text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] text-right">Actions</th>
+            <thead className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
+              <tr>
+                <th className="px-6 py-4 font-semibold">Member</th>
+                <th className="px-6 py-4 font-semibold">Contact</th>
+                <th className="px-6 py-4 font-semibold">Status</th>
+                <th className="px-6 py-4 font-semibold">Joined Date</th>
+                <th className="px-6 py-4 font-semibold text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-900/50">
+            <tbody className="divide-y divide-gray-100">
               {loading ? (
                 [1,2,3,4,5].map(i => (
-                  <tr key={i} className="animate-pulse h-24">
-                    <td colSpan={5} className="px-8"><div className="w-full h-8 bg-zinc-900/50 rounded-xl" /></td>
+                  <tr key={i} className="animate-pulse h-20">
+                    <td colSpan={5} className="px-6"><div className="w-full h-8 bg-gray-50 rounded-lg" /></td>
                   </tr>
                 ))
               ) : filteredUsers.length > 0 ? (
                 filteredUsers.map((user) => (
-                  <motion.tr 
-                    layout
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    key={user._id} 
-                    className="group hover:bg-zinc-900/20 transition-all"
-                  >
-                    <td className="px-8 py-6">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-2xl bg-zinc-800 border border-zinc-700 flex items-center justify-center font-black text-brand text-xl group-hover:bg-brand group-hover:text-white transition-all duration-500">
+                  <tr key={user._id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center font-bold text-gray-700 text-lg border border-gray-200">
                           {user.name.charAt(0)}
                         </div>
                         <div>
-                          <p className="text-white font-black uppercase italic tracking-tight">{user.name}</p>
-                          <p className="text-[10px] text-zinc-500 font-black uppercase tracking-widest">{user.role}</p>
+                          <p className="text-gray-900 font-semibold">{user.name}</p>
+                          <p className="text-xs text-gray-500 capitalize">{user.role}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-8 py-6">
+                    <td className="px-6 py-4">
                       <div className="space-y-1">
-                        <div className="flex items-center gap-2 text-zinc-400 text-xs font-bold">
-                          <Phone className="w-3 h-3 text-brand" />
+                        <div className="flex items-center gap-2 text-gray-600 text-sm">
+                          <Phone className="w-3.5 h-3.5 text-gray-400" />
                           {user.phone}
                         </div>
                         {user.email && (
-                          <div className="flex items-center gap-2 text-zinc-500 text-[10px] font-medium">
-                            <Mail className="w-3 h-3" />
+                          <div className="flex items-center gap-2 text-gray-500 text-xs">
+                            <Mail className="w-3.5 h-3.5 text-gray-400" />
                             {user.email}
                           </div>
                         )}
                       </div>
                     </td>
-                    <td className="px-8 py-6">
+                    <td className="px-6 py-4">
                       <span className={cn(
-                        "px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border",
+                        "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border",
                         user.membershipStatus === 'active' 
-                          ? "bg-green-500/10 text-green-500 border-green-500/20" 
+                          ? "bg-green-100 text-green-800 border-green-200" 
                           : user.membershipStatus === 'expired'
-                            ? "bg-red-500/10 text-red-500 border-red-500/20"
-                            : "bg-zinc-800 text-zinc-400 border-zinc-700"
+                            ? "bg-red-100 text-red-800 border-red-200"
+                            : "bg-gray-100 text-gray-800 border-gray-200"
                       )}>
                         {user.membershipStatus}
                       </span>
                     </td>
-                    <td className="px-8 py-6">
-                       <div className="flex items-center gap-2 text-zinc-400 text-xs font-bold">
-                          <Calendar className="w-3 h-3" />
-                          {new Date(user.createdAt).toLocaleDateString()}
+                    <td className="px-6 py-4 text-sm text-gray-500">
+                       <div className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4 text-gray-300" />
+                          {new Date(user.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
                         </div>
                     </td>
-                    <td className="px-8 py-6 text-right">
+                    <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <button 
                           onClick={() => handleToggleStatus(user._id)}
                           title={user.isActive ? "Deactivate" : "Activate"}
                           className={cn(
-                            "p-2.5 rounded-xl border transition-all",
+                            "p-2 rounded-lg border transition-colors",
                             user.isActive 
-                              ? "bg-red-500/10 border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white" 
-                              : "bg-green-500/10 border-green-500/20 text-green-500 hover:bg-green-500 hover:text-white"
+                              ? "text-red-600 border-red-100 hover:bg-red-50" 
+                              : "text-green-600 border-green-100 hover:bg-green-50"
                           )}
                         >
                           {user.isActive ? <UserMinus className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
@@ -205,22 +195,22 @@ export default function AdminUsersPage() {
                         <button 
                           onClick={() => handleFreeze(user._id)}
                           title="Freeze Membership"
-                          className="p-2.5 bg-blue-500/10 border border-blue-500/20 text-blue-500 hover:bg-blue-500 hover:text-white rounded-xl transition-all"
+                          className="p-2 text-blue-600 border border-blue-100 hover:bg-blue-50 rounded-lg transition-colors"
                         >
                           <Snowflake className="w-4 h-4" />
                         </button>
 
-                        <button className="p-2.5 bg-zinc-900 border border-zinc-800 text-zinc-500 hover:text-white rounded-xl transition-all">
+                        <button className="p-2 text-gray-400 hover:text-gray-900 transition-colors">
                           <MoreVertical className="w-4 h-4" />
                         </button>
                       </div>
                     </td>
-                  </motion.tr>
+                  </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={5} className="px-8 py-20 text-center text-zinc-600 font-bold uppercase tracking-widest italic animate-pulse">
-                    No agents matching the current criteria
+                  <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                    No members found matching your search
                   </td>
                 </tr>
               )}

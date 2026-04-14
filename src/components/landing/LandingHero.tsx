@@ -6,7 +6,7 @@ import { Flame, ChevronRight, Activity, Zap } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 
 export function LandingHero() {
-  const { user } = useAuthStore();
+  const { customer } = useAuthStore();
 
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
@@ -45,11 +45,11 @@ export function LandingHero() {
 
           <div className="flex flex-col sm:flex-row items-center gap-6">
             <Link 
-              href={user ? "/dashboard" : "/register"}
+              href={customer ? "/dashboard" : "/register"}
               className="group relative bg-brand text-white px-10 py-5 rounded-2xl font-black uppercase tracking-widest text-sm hover:shadow-[0_0_40px_rgba(255,77,0,0.5)] transition-all flex items-center gap-3 overflow-hidden"
             >
               <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-              {user ? 'Enter Dashboard' : 'Initiate Transformation'}
+              {customer ? 'Enter Dashboard' : 'Initiate Transformation'}
               <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Link>
             

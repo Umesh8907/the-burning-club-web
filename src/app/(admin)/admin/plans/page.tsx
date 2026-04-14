@@ -12,9 +12,10 @@ import {
   Clock,
   Zap,
   Flame,
-  ShieldCheck
+  ShieldCheck,
+  MoreVertical,
+  ChevronRight
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { formatCurrency, cn } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
@@ -31,6 +32,7 @@ export default function AdminPlansPage() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     price: '',
@@ -41,10 +43,10 @@ export default function AdminPlansPage() {
   const fetchPlans = async () => {
     try {
       setLoading(true);
-      const res = await axios.get('/plans');
+      const res = await axios.get('/admin/plans');
       setPlans(res.data.data);
     } catch (error) {
-      toast.error('Failed to load transmission plans');
+      toast.error('Failed to load plans');
     } finally {
       setLoading(false);
     }
@@ -57,199 +59,216 @@ export default function AdminPlansPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      toast.loading('Forging new transmission plan...', { id: 'plan' });
-      await axios.post('/plans', {
+      const payload = {
         ...formData,
         price: parseFloat(formData.price),
         durationInMonths: parseInt(formData.durationInMonths)
-      });
-      toast.success('New Plan Forged!', { id: 'plan' });
+      };
+
+      if (editingPlan) {
+        await axios.patch(`/admin/plans/${editingPlan._id}`, payload);
+        toast.success('Plan updated successfully');
+      } else {
+        await axios.post('/plans', payload);
+        toast.success('New plan created');
+      }
+      
       setIsModalOpen(false);
-      setFormData({ name: '', price: '', durationInMonths: '1', isActive: true });
+      resetForm();
       fetchPlans();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to create plan', { id: 'plan' });
+      toast.error(error.response?.data?.message || 'Operation failed');
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({ name: '', price: '', durationInMonths: '1', isActive: true });
+    setEditingPlan(null);
+  };
+
+  const handleEdit = (plan: Plan) => {
+    setEditingPlan(plan);
+    setFormData({
+      name: plan.name,
+      price: plan.price.toString(),
+      durationInMonths: plan.durationInMonths.toString(),
+      isActive: plan.isActive
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this plan?')) return;
+    try {
+      await axios.delete(`/admin/plans/${id}`);
+      toast.success('Plan deleted');
+      fetchPlans();
+    } catch (error) {
+      toast.error('Failed to delete plan');
     }
   };
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+    <div className="space-y-6 text-gray-900">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-4xl font-black text-white tracking-tight uppercase italic">Transmission Plans</h1>
-          <p className="text-zinc-500 mt-1 uppercase tracking-widest text-xs font-bold">Manage membership levels and pricing</p>
+          <h1 className="text-2xl font-bold">Membership Plans</h1>
+          <p className="text-sm text-gray-500">Define and manage membership pricing and durations.</p>
         </div>
         
         <button 
-          onClick={() => setIsModalOpen(true)}
-          className="bg-white text-black font-black px-6 py-3 rounded-xl flex items-center gap-2 hover:bg-brand hover:text-white transition-all shadow-lg"
+          onClick={() => { resetForm(); setIsModalOpen(true); }}
+          className="bg-indigo-600 text-white font-semibold px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-indigo-700 transition-colors shadow-sm"
         >
-          <Plus className="w-5 h-5" />
-          FORGE NEW PLAN
+          <Plus className="w-4 h-4" />
+          Create New Plan
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {loading ? (
           [1,2,3].map(i => (
-            <div key={i} className="glass rounded-[32px] p-8 animate-pulse h-64" />
+            <div key={i} className="bg-white border border-gray-200 rounded-xl p-6 animate-pulse h-64" />
           ))
-        ) : plans.map((plan, i) => (
-          <motion.div
+        ) : plans.map((plan) => (
+          <div
             key={plan._id}
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: i * 0.1 }}
             className={cn(
-               "glass rounded-[32px] p-8 flex flex-col relative group transition-all duration-500",
-               plan.isActive ? "border-zinc-800" : "border-red-500/20 opacity-50 gray-scale"
+               "bg-white rounded-xl p-6 border flex flex-col transition-all",
+               plan.isActive ? "border-gray-200 shadow-sm hover:shadow-md" : "border-red-100 bg-gray-50 opacity-75"
             )}
           >
-            <div className="mb-8">
-              <div className="flex justify-between items-start">
-                <h3 className="text-2xl font-black text-white uppercase mb-2 tracking-tighter">{plan.name}</h3>
-                <div className={cn(
-                  "p-2 rounded-xl border transition-colors",
-                  plan.isActive ? "bg-green-500/10 border-green-500/20 text-green-500" : "bg-red-500/10 border-red-500/20 text-red-500"
-                )}>
-                  {plan.isActive ? <Zap className="w-4 h-4" /> : <X className="w-4 h-4" />}
-                </div>
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">{plan.name}</h3>
+                <p className="text-xs text-gray-500 uppercase font-semibold tracking-wider mt-0.5">{plan.durationInMonths} Month Plan</p>
               </div>
-              <div className="flex items-baseline gap-1 mt-2">
-                <span className="text-4xl font-black text-white">{formatCurrency(plan.price * 100)}</span>
-                <span className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">/ {plan.durationInMonths}MO</span>
+              <div className={cn(
+                "p-1.5 rounded-full border",
+                plan.isActive ? "bg-green-50 border-green-100 text-green-600" : "bg-red-50 border-red-100 text-red-600"
+              )}>
+                {plan.isActive ? <Zap className="w-4 h-4" /> : <X className="w-4 h-4" />}
               </div>
             </div>
 
-            <div className="space-y-3 mb-10 flex-1">
-               <div className="flex items-center gap-3">
-                  <Clock className="w-4 h-4 text-brand" />
-                  <span className="text-zinc-400 text-sm font-bold uppercase tracking-widest">{plan.durationInMonths} Months Access</span>
+            <div className="flex items-baseline gap-1 my-4">
+              <span className="text-3xl font-bold text-gray-900">{formatCurrency(plan.price * 100)}</span>
+              <span className="text-gray-400 text-sm font-medium">total</span>
+            </div>
+
+            <div className="space-y-2 mb-6 flex-1">
+               <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <Check className="w-4 h-4 text-green-500" />
+                  <span>{plan.durationInMonths} Months Access</span>
                </div>
-               <div className="flex items-center gap-3">
-                  <ShieldCheck className="w-4 h-4 text-brand" />
-                  <span className="text-zinc-400 text-sm font-bold uppercase tracking-widest">All Gym Facilities</span>
-               </div>
-               <div className="flex items-center gap-3">
-                  <Flame className="w-4 h-4 text-brand" />
-                  <span className="text-zinc-400 text-sm font-bold uppercase tracking-widest underline italic">Priority Access</span>
+               <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <Check className="w-4 h-4 text-green-500" />
+                  <span>Full Facility Access</span>
                </div>
             </div>
 
-            <div className="flex gap-2">
-              <button className="flex-1 bg-zinc-900 border border-zinc-800 text-white font-black py-4 rounded-2xl hover:bg-zinc-800 transition-all flex items-center justify-center gap-2">
-                <Edit className="w-4 h-4" /> EDIT
+            <div className="flex gap-2 pt-4 border-t border-gray-50">
+              <button 
+                onClick={() => handleEdit(plan)}
+                className="flex-1 bg-gray-50 border border-gray-200 text-gray-700 font-semibold py-2 rounded-lg hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 text-sm"
+              >
+                <Edit className="w-3.5 h-3.5" /> Edit
               </button>
-              <button className="p-4 bg-red-500/10 border border-red-500/20 text-red-500 rounded-2xl hover:bg-red-500 hover:text-white transition-all">
-                <Trash2 className="w-5 h-5" />
+              <button 
+                onClick={() => handleDelete(plan._id)}
+                className="p-2 text-red-600 border border-red-50"
+              >
+                <Trash2 className="w-4 h-4" />
               </button>
             </div>
-          </motion.div>
+          </div>
         ))}
       </div>
 
-       {/* Create Plan Modal */}
-       <AnimatePresence>
-        {isModalOpen && (
-          <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsModalOpen(false)}
-              className="absolute inset-0 bg-black/80 backdrop-blur-md"
-            />
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-md bg-zinc-950 border border-zinc-800 rounded-[32px] p-8 shadow-2xl"
-            >
-              <div className="flex justify-between items-center mb-8">
-                <div>
-                  <h3 className="text-2xl font-black text-white uppercase italic tracking-tighter">FORGE PLAN</h3>
-                  <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest">Construct a new membership tier</p>
-                </div>
-                <button onClick={() => setIsModalOpen(false)} className="p-2 text-zinc-500 hover:text-white bg-zinc-900 rounded-full border border-zinc-800">
+       {/* Create/Edit Plan Modal */}
+       {isModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm">
+            <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-xl w-full max-w-md">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold text-gray-900">{editingPlan ? 'Edit Plan' : 'Create New Plan'}</h3>
+                <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600">
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-1">Plan Display Name</label>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Plan Name</label>
                   <input 
                     type="text" 
                     required
                     value={formData.name}
                     onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    className="w-full bg-zinc-900/50 border border-zinc-800 rounded-2xl py-4 px-5 text-white font-bold outline-none focus:border-brand transition-colors uppercase"
-                    placeholder="e.g. TITANIUM CORE"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-indigo-500 outline-none"
+                    placeholder="e.g. Monthly Standard"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-1">Price (₹)</label>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Price (₹)</label>
                     <input 
                       type="number" 
                       required
                       value={formData.price}
                       onChange={(e) => setFormData({...formData, price: e.target.value})}
-                      className="w-full bg-zinc-900/50 border border-zinc-800 rounded-2xl py-4 px-5 text-white font-bold outline-none focus:border-brand transition-colors"
-                      placeholder="0"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-indigo-500 outline-none"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-1">Months</label>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Duration (Months)</label>
                     <input 
                       type="number" 
                       required
                       min="1"
                       value={formData.durationInMonths}
                       onChange={(e) => setFormData({...formData, durationInMonths: e.target.value})}
-                      className="w-full bg-zinc-900/50 border border-zinc-800 rounded-2xl py-4 px-5 text-white font-bold outline-none focus:border-brand transition-colors"
-                      placeholder="e.g. 1"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-indigo-500 outline-none"
                     />
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between p-4 bg-zinc-900/30 rounded-2xl border border-zinc-800/50">
-                   <div className="flex items-center gap-3">
-                     <div className={cn(
-                       "w-8 h-8 rounded-lg flex items-center justify-center transition-all",
-                       formData.isActive ? "bg-green-500 text-white" : "bg-zinc-800 text-zinc-600"
-                     )}>
-                       {formData.isActive ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
-                     </div>
-                     <span className="text-[10px] font-black uppercase text-white tracking-widest">Active Status</span>
-                   </div>
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
+                   <span className="text-sm font-medium text-gray-700">Active Status</span>
                    <button 
                      type="button"
                      onClick={() => setFormData({...formData, isActive: !formData.isActive})}
                      className={cn(
-                       "w-12 h-6 rounded-full relative transition-all",
-                       formData.isActive ? "bg-brand" : "bg-zinc-800"
+                       "w-10 h-5 rounded-full relative transition-all",
+                       formData.isActive ? "bg-indigo-600" : "bg-gray-300"
                      )}
                    >
                      <div className={cn(
-                       "absolute top-1 w-4 h-4 bg-white rounded-full transition-all",
-                       formData.isActive ? "right-1" : "left-1"
+                       "absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-all",
+                       formData.isActive ? "right-0.5" : "left-0.5"
                      )} />
                    </button>
                 </div>
 
-                <button 
-                  type="submit"
-                  className="w-full bg-white text-black font-black py-5 rounded-2xl hover:bg-brand hover:text-white transition-all shadow-xl hover:shadow-brand/20 mt-4 uppercase italic tracking-tight"
-                >
-                  INITIALIZE PLAN
-                </button>
+                <div className="flex gap-3 mt-6">
+                    <button 
+                        type="button"
+                        onClick={() => setIsModalOpen(false)}
+                        className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-50"
+                    >
+                        Cancel
+                    </button>
+                    <button 
+                        type="submit"
+                        className="flex-1 px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 shadow-sm"
+                    >
+                        {editingPlan ? 'Save Changes' : 'Initialize Plan'}
+                    </button>
+                </div>
               </form>
-            </motion.div>
+            </div>
           </div>
         )}
-      </AnimatePresence>
     </div>
   );
 }

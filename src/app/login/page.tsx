@@ -11,7 +11,7 @@ import { useRouter } from 'next/navigation';
 export default function LoginPage() {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
-  const { login, user, loading: authLoading, isInitialized } = useAuthStore();
+  const { login, customer, loading: authLoading, isInitialized } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
   const router = useRouter();
@@ -22,17 +22,13 @@ export default function LoginPage() {
 
   // Client-side guard for cache hits / back button
   useEffect(() => {
-    if (isInitialized && user && mounted) {
-      if (user.role === 'admin') {
-        router.replace('/admin/dashboard');
-      } else {
-        router.replace('/dashboard');
-      }
+    if (isInitialized && customer && mounted) {
+      router.replace('/dashboard');
     }
-  }, [user, isInitialized, router, mounted]);
+  }, [customer, isInitialized, router, mounted]);
 
   // If we are still checking auth, or if we are logged in, don't show the form
-  if (!mounted || (isInitialized && user)) {
+  if (!mounted || (isInitialized && customer)) {
     return null;
   }
 
