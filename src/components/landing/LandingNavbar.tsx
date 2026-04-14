@@ -55,21 +55,19 @@ export function LandingNavbar() {
 
           <div className="h-6 w-px bg-white/10" />
 
-          {admin && (
+          {admin ? (
             <Link 
               href="/admin/dashboard"
-              className="text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:text-brand transition-colors mr-6"
+              className="bg-indigo-600 text-white px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-lg"
             >
-              Admin Portal
+              Go to Admin Portal
             </Link>
-          )}
-
-          {customer ? (
+          ) : customer ? (
             <Link 
               href="/dashboard"
               className="bg-white text-black px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-brand hover:text-white transition-all shadow-lg"
             >
-              Dashboard
+              Go to Dashboard
             </Link>
           ) : (
             <div className="flex items-center gap-6">
@@ -119,17 +117,15 @@ export function LandingNavbar() {
             ))}
             <div className="h-px bg-white/5 w-full" />
             
-            {admin && (
+            {admin ? (
               <Link 
                 href="/admin/dashboard"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="text-center py-4 text-zinc-400 font-black uppercase tracking-widest border border-zinc-800 rounded-xl"
+                className="bg-indigo-600 text-white py-4 rounded-xl text-center font-black uppercase tracking-widest shadow-xl shadow-indigo-200"
               >
                 Go to Admin Portal
               </Link>
-            )}
-
-            {customer ? (
+            ) : customer ? (
               <Link 
                 href="/dashboard"
                 onClick={() => setIsMobileMenuOpen(false)}

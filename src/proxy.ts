@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 // Rebuild trigger
-export function middleware(request: NextRequest) {
+export default function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
   // Get tokens from cookies
@@ -13,6 +13,7 @@ export function middleware(request: NextRequest) {
   if (pathname.startsWith('/admin')) {
     // Skip protection for the admin login page itself
     if (pathname === '/admin/login') {
+      if (adminToken) return NextResponse.redirect(new URL('/admin/dashboard', request.url), 307);
       return NextResponse.next();
     }
 
@@ -37,8 +38,8 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/dashboard', request.url), 307);
   }
 
-  // 4. Special Case: Logged-in Admins on /admin/login
-  if (adminToken && pathname === '/admin/login') {
+  // 4. Special Case: Logged-in Admins on /login (from landing page navbar)
+  if (adminToken && pathname === '/login') {
     return NextResponse.redirect(new URL('/admin/dashboard', request.url), 307);
   }
 

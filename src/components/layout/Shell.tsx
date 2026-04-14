@@ -25,15 +25,6 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { customer, logout } = useAuthStore();
 
-  const isAdmin = customer?.role === 'admin';
-
-  const adminLinks = [
-    { name: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
-    { name: 'Members', href: '/admin/users', icon: Users },
-    { name: 'Plans', href: '/admin/plans', icon: CreditCard },
-    { name: 'Coupons', href: '/admin/coupons', icon: Ticket },
-  ];
-
   const memberLinks = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'My Attendance', href: '/attendance', icon: QrCode },
@@ -41,7 +32,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
     { name: 'Membership', href: '/plans', icon: CreditCard },
   ];
 
-  const links = isAdmin ? adminLinks : memberLinks;
+  const links = memberLinks;
 
   return (
     <div className="min-h-screen bg-background">

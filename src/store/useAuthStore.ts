@@ -89,13 +89,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const is_admin = targetRole === 'admin' || userData.role === 'admin';
       
       if (is_admin) {
+        // Clear customer session if logging in as admin
+        Cookies.remove('accessToken', { path: '/' });
+        localStorage.removeItem('refreshToken');
+        
         Cookies.set('adminAccessToken', accessToken, { expires: 1, path: '/' });
         localStorage.setItem('adminRefreshToken', refreshToken);
-        set({ admin: userData, loading: false, isInitialized: true });
+        set({ admin: userData, customer: null, loading: false, isInitialized: true });
       } else {
+        // Clear admin session if logging in as customer
+        Cookies.remove('adminAccessToken', { path: '/' });
+        localStorage.removeItem('adminRefreshToken');
+
         Cookies.set('accessToken', accessToken, { expires: 1, path: '/' });
         localStorage.setItem('refreshToken', refreshToken);
-        set({ customer: userData, loading: false, isInitialized: true });
+        set({ customer: userData, admin: null, loading: false, isInitialized: true });
       }
 
       toast.success(`Welcome back, ${userData.name}!`);
